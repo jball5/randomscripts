@@ -1,4 +1,4 @@
-#/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 [CmdletBinding()]
 param (
     [Parameter(Mandatory=$true,HelpMessage="Please specify a location to search and archive...")]
