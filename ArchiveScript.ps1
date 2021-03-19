@@ -33,29 +33,9 @@ function Search-Folders {
     Where-Object {$_.LastAccessTime -lt $SixMonthsBack} -OutVariable Global:GatheredFolders
     
 }
-<#
-function Rename-Files {
-    param (
-        $Global:GatheredFiles
-    )
-    ForEach ($file in $Global:GatheredFiles) {
-        if ($file.Name -match "([\[\]\/\&\:])") {
-            Rename-Item -Path $file.FullName -NewName $($file.Name -replace "([\[\]\/\&\:])","_")
-            $Global:RenameHappened = 1
-        }
-    Return $Global:RenameHappened    
-    }
-}
-#>
+
 [void](Search-Files)
 [void](Search-Folders)
-#[void](Rename-Files (Search-Files))
-<#
-If ($Global:RenameHappened -eq 1) {
-    Write-Host "File rename happened, running search again" -ForegroundColor Green
-    [void](Search-Files)
-}
-#>
 function Backup-Process {
     param (
         $FilesOrFolders
@@ -72,23 +52,4 @@ Backup-Process(Search-Folders)
 
 Write-Host "Success! All files and folders are backed up and compressed." -ForegroundColor Green
 
-<#
-If ($null -ne $Global:GatheredFiles.Name) {
-    Write-Host "Adding $($Global:GatheredFiles.Name) to 6moDownloadArchive.zip" -ForegroundColor Green
-    Compress-Archive -Path $Global:GatheredFiles.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
-    Remove-Item $Global:GatheredFiles.Name
-    Write-Host "Success! All files are backed up and compressed." -ForegroundColor Green
-} Else {
-    Write-Host "Success! All files are backed up and compressed." -ForegroundColor Green
-}
-
-If ($null -ne $Global:GatheredFolders.Name) {
-    Write-Host "Adding $($Global:GatheredFolders.Name) to 6moDownloadArchive.zip" -ForegroundColor Green
-    Compress-Archive -Path $Global:GatheredFolders.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
-    Remove-Item $Global:GatheredFolders.Name -Recurse -Confirm:$false
-    Write-Host "Success! All folders are backed up and compressed." -ForegroundColor Green
-} Else {
-    Write-Host "Success! All folders are backed up and compressed." -ForegroundColor Green
-}
-#>
 Stop-Transcript
