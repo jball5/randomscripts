@@ -17,6 +17,13 @@ function Search-Files {
     Sort-Object LastAccessTime -Descending | `
     Where-Object {$_.LastWriteTime -lt $SixMonthsBack} -OutVariable Global:GatheredFiles
     
+    if ($Global:GatheredFiles.Count -gt 0) {
+        for ($i = 0; $i -lt $Global:GatheredFiles.Count; $i++) {
+            if ($Global:GatheredFiles.Name[$i] -match "([\[\]\/\&\:])") {
+              $Global:GatheredFiles.Name[$i] = Rename-Item -Path $Global:GatheredFiles.FullName[$i] -NewName $($Global:GatheredFiles.Name[$i] -replace "([\[\]\/\&\:])","_")
+            }
+          }
+    }
 }
 function Search-Folders {
     
@@ -26,6 +33,7 @@ function Search-Folders {
     Where-Object {$_.LastAccessTime -lt $SixMonthsBack} -OutVariable Global:GatheredFolders
     
 }
+<#
 function Rename-Files {
     param (
         $Global:GatheredFiles
@@ -38,16 +46,33 @@ function Rename-Files {
     Return $Global:RenameHappened    
     }
 }
-
+#>
 [void](Search-Files)
 [void](Search-Folders)
-[void](Rename-Files (Search-Files))
-
+#[void](Rename-Files (Search-Files))
+<#
 If ($Global:RenameHappened -eq 1) {
     Write-Host "File rename happened, running search again" -ForegroundColor Green
     [void](Search-Files)
 }
+#>
+function Backup-Process {
+    param (
+        $FilesOrFolders
+    )
+    If ($null -ne $FilesOrFolders.Name) {
+        Write-Host "Adding $($FilesOrFolders.Name) to 6moDownloadArchive.zip" -ForegroundColor Green
+        Compress-Archive -Path $FilesOrFolders.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
+        Remove-Item $FilesOrFolders.Name   
+    }
+}
 
+Backup-Process(Search-Files)
+Backup-Process(Search-Folders)
+
+Write-Host "Success! All files and folders are backed up and compressed." -ForegroundColor Green
+
+<#
 If ($null -ne $Global:GatheredFiles.Name) {
     Write-Host "Adding $($Global:GatheredFiles.Name) to 6moDownloadArchive.zip" -ForegroundColor Green
     Compress-Archive -Path $Global:GatheredFiles.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
@@ -65,5 +90,5 @@ If ($null -ne $Global:GatheredFolders.Name) {
 } Else {
     Write-Host "Success! All folders are backed up and compressed." -ForegroundColor Green
 }
-
+#>
 Stop-Transcript
