@@ -10,9 +10,10 @@ $Date = Get-Date -Format FileDate
 $Exclude = @("*.app","*.zip")
 
 Start-Transcript -Path ./archive_$Date.txt -UseMinimalHeader
+
 function Search-Files {
     
-    Get-ChildItem -File -Exclude $Exclude | `
+    Get-ChildItem -Path "$Location/*" -File -Exclude $Exclude | `
     Select-Object LastWriteTime, LastAccessTime, Name, FullName | `
     Sort-Object LastAccessTime -Descending | `
     Where-Object {$_.LastWriteTime -lt $SixMonthsBack} -OutVariable Global:GatheredFiles
@@ -25,25 +26,29 @@ function Search-Files {
           }
     }
 }
+
 function Search-Folders {
     
-    Get-ChildItem -Directory -Exclude $Exclude | `
-    Select-Object LastWriteTime, LastAccessTime, Name | `
+    Get-ChildItem -Path "$Location/*" -Directory -Recurse | `
+    Select-Object LastWriteTime, LastAccessTime, Name, FullName, Extension | `
     Sort-Object LastAccessTime -Descending | `
-    Where-Object {$_.LastAccessTime -lt $SixMonthsBack} -OutVariable Global:GatheredFolders
+    Where-Object {($_.LastAccessTime -lt $SixMonthsBack) -and ($_.FullName -notlike "*.app/*") -and ($_.Extension -ne ".app")} -OutVariable Global:GatheredFolders
     
 }
 
-[void](Search-Files)
-[void](Search-Folders)
 function Backup-Process {
     param (
         $FilesOrFolders
     )
     If ($null -ne $FilesOrFolders.Name) {
         Write-Host "Adding $($FilesOrFolders.Name) to 6moDownloadArchive.zip" -ForegroundColor Green
-        Compress-Archive -Path $FilesOrFolders.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
-        Remove-Item $FilesOrFolders.Name   
+        try {
+            Compress-Archive -Path $FilesOrFolders.Name -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
+            Compress-Archive -Path $FilesOrFolders.FullName -Update -CompressionLevel Optimal -DestinationPath ./6moDownloadArchive.zip
+        }
+        Remove-Item $FilesOrFolders.FullName -Recurse -Confirm:$false
     }
 }
 
